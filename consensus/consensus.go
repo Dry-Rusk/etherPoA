@@ -18,11 +18,11 @@
 package consensus
 
 import (
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/Exgibichi/go-etf/common"
+	"github.com/Exgibichi/go-etf/core/state"
+	"github.com/Exgibichi/go-etf/core/types"
+	"github.com/Exgibichi/go-etf/params"
+	"github.com/Exgibichi/go-etf/rpc"
 	"math/big"
 )
 

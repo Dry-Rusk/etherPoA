@@ -23,10 +23,10 @@ import (
 	"errors"
 	"time"
 
-	"github.com/ethereum/go-ethereum/accounts"
-	"github.com/ethereum/go-ethereum/accounts/keystore"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/Exgibichi/go-etf/accounts"
+	"github.com/Exgibichi/go-etf/accounts/keystore"
+	"github.com/Exgibichi/go-etf/common"
+	"github.com/Exgibichi/go-etf/crypto"
 )
 
 const (

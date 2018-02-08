@@ -21,11 +21,11 @@ import (
 	"bytes"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/Exgibichi/go-etf/common"
+	"github.com/Exgibichi/go-etf/core"
+	"github.com/Exgibichi/go-etf/ethdb"
+	"github.com/Exgibichi/go-etf/log"
+	"github.com/Exgibichi/go-etf/rlp"
 )
 
 var deduplicateData = []byte("dbUpgrade_20170714deduplicateData")

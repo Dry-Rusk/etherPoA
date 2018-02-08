@@ -25,11 +25,11 @@ import (
 	"net"
 	"time"
 
-	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/p2p/nat"
-	"github.com/ethereum/go-ethereum/p2p/netutil"
-	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/Exgibichi/go-etf/crypto"
+	"github.com/Exgibichi/go-etf/log"
+	"github.com/Exgibichi/go-etf/p2p/nat"
+	"github.com/Exgibichi/go-etf/p2p/netutil"
+	"github.com/Exgibichi/go-etf/rlp"
 )
 
 const Version = 4
