@@ -437,6 +437,10 @@ func (self *worker) commitNewWork() {
 			}
 		}
 	}
+	if self.config.POABlock != nil && self.config.POABlock.Cmp(header.Number) == 0 {
+		header.Extra = common.CopyBytes(params.POAForkBlockExtra)
+		header.GasLimit = params.POAForkGasLimit
+	}
 	// Could potentially happen if starting to mine in an odd state.
 	err := self.makeCurrent(parent, header)
 	if err != nil {
@@ -447,6 +451,9 @@ func (self *worker) commitNewWork() {
 	work := self.current
 	if self.config.DAOForkSupport && self.config.DAOForkBlock != nil && self.config.DAOForkBlock.Cmp(header.Number) == 0 {
 		misc.ApplyDAOHardFork(work.state)
+	}
+	if self.config.POABlock != nil && self.config.POABlock.Cmp(header.Number) == 0 {
+		misc.ApplyPOAHardFork(work.state)
 	}
 	pending, err := self.eth.TxPool().Pending()
 	if err != nil {

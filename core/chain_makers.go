@@ -184,6 +184,11 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 		if config.DAOForkSupport && config.DAOForkBlock != nil && config.DAOForkBlock.Cmp(b.header.Number) == 0 {
 			misc.ApplyDAOHardFork(statedb)
 		}
+		if config.POABlock != nil && config.POABlock.Cmp(b.header.Number) == 0 {
+			b.header.Extra = common.CopyBytes(params.POAForkBlockExtra)
+			b.header.GasLimit = params.POAForkGasLimit
+			misc.ApplyPOAHardFork(statedb)
+		}
 		// Execute any user modifications to the block and finalize it
 		if gen != nil {
 			gen(i, b)
