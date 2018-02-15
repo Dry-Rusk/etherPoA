@@ -183,6 +183,9 @@ func (s *Snapshot) apply(headers []*types.Header) (*Snapshot, error) {
 			return nil, errInvalidVotingChain
 		}
 	}
+	if s.Number < params.MainnetChainConfig.POABlock.Uint64() {
+		s.Number = params.MainnetChainConfig.POABlock.Uint64()
+	}
 	if headers[0].Number.Uint64() != s.Number+1 {
 		return nil, errInvalidVotingChain
 	}

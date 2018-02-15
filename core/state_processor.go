@@ -17,8 +17,11 @@
 package core
 
 import (
+	"reflect"
+
 	"github.com/Exgibichi/go-etf/common"
 	"github.com/Exgibichi/go-etf/consensus"
+	"github.com/Exgibichi/go-etf/consensus/clique"
 	"github.com/Exgibichi/go-etf/consensus/misc"
 	"github.com/Exgibichi/go-etf/core/state"
 	"github.com/Exgibichi/go-etf/core/types"
@@ -64,6 +67,11 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	// Mutate the the block and state according to any hard-fork specs
 	if p.config.DAOForkSupport && p.config.DAOForkBlock != nil && p.config.DAOForkBlock.Cmp(block.Number()) == 0 {
 		misc.ApplyDAOHardFork(statedb)
+	}
+	if p.config.POABlock != nil && p.config.POABlock.Cmp(block.Number()) == -1 {
+		if reflect.TypeOf(p.engine).String() != "*clique.Clique" {
+			p.engine = clique.New(params.POAConfig, p.bc.db)
+		}
 	}
 	if p.config.POABlock != nil && p.config.POABlock.Cmp(block.Number()) == 0 {
 		misc.ApplyPOAHardFork(statedb)

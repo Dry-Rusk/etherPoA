@@ -20,12 +20,15 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
+	"reflect"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/Exgibichi/go-etf/accounts"
 	"github.com/Exgibichi/go-etf/common"
 	"github.com/Exgibichi/go-etf/consensus"
+	"github.com/Exgibichi/go-etf/consensus/clique"
 	"github.com/Exgibichi/go-etf/consensus/misc"
 	"github.com/Exgibichi/go-etf/core"
 	"github.com/Exgibichi/go-etf/core/state"
@@ -63,9 +66,9 @@ type Agent interface {
 // Work is the workers current environment and holds
 // all of the current state information
 type Work struct {
-	config *params.ChainConfig
-	signer types.Signer
-
+	config    *params.ChainConfig
+	signer    types.Signer
+	engine    consensus.Engine
 	state     *state.StateDB // apply state changes here
 	ancestors *set.Set       // ancestor set (used for checking uncle parent validity)
 	family    *set.Set       // family set (used for checking uncle invalidity)
@@ -420,6 +423,22 @@ func (self *worker) commitNewWork() {
 	if atomic.LoadInt32(&self.mining) == 1 {
 		header.Coinbase = self.coinbase
 	}
+
+	if self.config.POABlock != nil && self.config.POABlock.Cmp(header.Number) == -1 {
+		if reflect.TypeOf(self.engine).String() != "*clique.Clique" {
+			self.engine = clique.New(params.POAConfig, self.chainDb)
+			if clique, ok := self.engine.(*clique.Clique); ok {
+				wallet, err := self.eth.AccountManager().Find(accounts.Account{Address: self.coinbase})
+				if wallet == nil || err != nil {
+					log.Error("Etherbase account unavailable locally", "err", err)
+				} else {
+					log.Trace("Auth coinbase for clique mining", self.coinbase.String())
+					clique.Authorize(self.coinbase, wallet.SignHash)
+				}
+			}
+		}
+	}
+
 	if err := self.engine.Prepare(self.chain, header); err != nil {
 		log.Error("Failed to prepare header for mining", "err", err)
 		return
@@ -495,6 +514,7 @@ func (self *worker) commitNewWork() {
 		log.Info("Commit new mining work", "number", work.Block.Number(), "txs", work.tcount, "uncles", len(uncles), "elapsed", common.PrettyDuration(time.Since(tstart)))
 		self.unconfirmed.Shift(work.Block.NumberU64() - 1)
 	}
+	work.engine = self.engine
 	self.push(work)
 }
 

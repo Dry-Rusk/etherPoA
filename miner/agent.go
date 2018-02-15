@@ -17,6 +17,7 @@
 package miner
 
 import (
+	"reflect"
 	"sync"
 
 	"sync/atomic"
@@ -100,6 +101,9 @@ out:
 }
 
 func (self *CpuAgent) mine(work *Work, stop <-chan struct{}) {
+	if reflect.TypeOf(self.engine) != reflect.TypeOf(work.engine) {
+		self.engine = work.engine
+	}
 	if result, err := self.engine.Seal(self.chain, work.Block, stop); result != nil {
 		log.Info("Successfully sealed new block", "number", result.Number(), "hash", result.Hash())
 		self.returnCh <- &Result{work, result}

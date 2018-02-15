@@ -76,6 +76,8 @@ var (
 	// that is not part of the local blockchain.
 	errUnknownBlock = errors.New("unknown block")
 
+	errEmptyBlock = errors.New("empty block")
+
 	// errInvalidCheckpointBeneficiary is returned if a checkpoint/epoch transition
 	// block has a beneficiary set to non-zeroes.
 	errInvalidCheckpointBeneficiary = errors.New("beneficiary in checkpoint block non-zero")
@@ -240,6 +242,16 @@ func (c *Clique) VerifyHeader(chain consensus.ChainReader, header *types.Header,
 	return c.verifyHeader(chain, header, nil)
 }
 
+// VerifyHeader checks whether a header conforms to the consensus rules.
+func (c *Clique) VerifyHeaderPOA(chain consensus.ChainReader, header *types.Header, seal bool, parent *types.Header) error {
+	var parents []*types.Header
+	if parent != nil {
+		parents = make([]*types.Header, 1)
+		parents[0] = parent
+	}
+	return c.verifyHeader(chain, header, parents)
+}
+
 // VerifyHeaders is similar to VerifyHeader, but verifies a batch of headers. The
 // method returns a quit channel to abort the operations and a results channel to
 // retrieve the async verifications (the order is that of the input slice).
@@ -266,11 +278,16 @@ func (c *Clique) VerifyHeaders(chain consensus.ChainReader, headers []*types.Hea
 // looking those up from the database. This is useful for concurrently verifying
 // a batch of new headers.
 func (c *Clique) verifyHeader(chain consensus.ChainReader, header *types.Header, parents []*types.Header) error {
+	if header == nil {
+		return errEmptyBlock
+	}
 	if header.Number == nil {
 		return errUnknownBlock
 	}
 	number := header.Number.Uint64()
-
+	if chain.Config().POABlock != nil && chain.Config().POABlock.Cmp(header.Number) >= 0 {
+		return nil
+	}
 	// Don't waste time checking blocks from the future
 	if header.Time.Cmp(big.NewInt(time.Now().Unix())) > 0 {
 		return consensus.ErrFutureBlock
@@ -377,6 +394,7 @@ func (c *Clique) snapshot(chain consensus.ChainReader, number uint64, hash commo
 	for snap == nil {
 		// If an in-memory snapshot was found, use that
 		if s, ok := c.recents.Get(hash); ok {
+			log.Trace("Loaded voting snapshot from memory", "number", number, "hash", hash)
 			snap = s.(*Snapshot)
 			break
 		}
@@ -389,7 +407,26 @@ func (c *Clique) snapshot(chain consensus.ChainReader, number uint64, hash commo
 			}
 		}
 		// If we're at block zero, make a snapshot
-		if number == 0 {
+		if chain.Config().POABlock != nil && chain.Config().POABlock.Uint64() == number {
+			genesis := chain.GetHeaderByNumber(chain.Config().POABlock.Uint64())
+			if genesis == nil && parents[0].Number.Uint64() == number {
+				genesis = parents[0]
+			}
+			if err := c.VerifyHeader(chain, genesis, false); err != nil {
+				return nil, err
+			}
+			signers := make([]common.Address, (len(genesis.Extra)-extraVanity-extraSeal)/common.AddressLength)
+			for i := 0; i < len(signers); i++ {
+				copy(signers[i][:], genesis.Extra[extraVanity+i*common.AddressLength:])
+			}
+			snap = newSnapshot(c.config, c.signatures, 0, genesis.Hash(), signers)
+			if err := snap.store(c.db); err != nil {
+				return nil, err
+			}
+			log.Trace("Stored POA genesis voting snapshot to disk")
+			break
+		}
+		if chain.Config().POABlock == nil && number == 0 {
 			genesis := chain.GetHeaderByNumber(0)
 			if err := c.VerifyHeader(chain, genesis, false); err != nil {
 				return nil, err

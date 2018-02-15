@@ -223,7 +223,7 @@ func CreateConsensusEngine(ctx *node.ServiceContext, config *ethash.Config, chai
 		return ethash.NewFaker()
 	case config.PowMode == ethash.ModeTest:
 		log.Warn("Ethash used in test mode")
-		return ethash.NewTester()
+		return ethash.NewTester(db)
 	case config.PowMode == ethash.ModeShared:
 		log.Warn("Ethash used in shared mode")
 		return ethash.NewShared()
@@ -235,7 +235,7 @@ func CreateConsensusEngine(ctx *node.ServiceContext, config *ethash.Config, chai
 			DatasetDir:     config.DatasetDir,
 			DatasetsInMem:  config.DatasetsInMem,
 			DatasetsOnDisk: config.DatasetsOnDisk,
-		})
+		}, db)
 		engine.SetThreads(-1) // Disable CPU mining
 		return engine
 	}

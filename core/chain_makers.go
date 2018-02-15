@@ -19,9 +19,11 @@ package core
 import (
 	"fmt"
 	"math/big"
+	"reflect"
 
 	"github.com/Exgibichi/go-etf/common"
 	"github.com/Exgibichi/go-etf/consensus"
+	"github.com/Exgibichi/go-etf/consensus/clique"
 	"github.com/Exgibichi/go-etf/consensus/misc"
 	"github.com/Exgibichi/go-etf/core/state"
 	"github.com/Exgibichi/go-etf/core/types"
@@ -166,6 +168,11 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 	genblock := func(i int, parent *types.Block, statedb *state.StateDB) (*types.Block, types.Receipts) {
 		// TODO(karalabe): This is needed for clique, which depends on multiple blocks.
 		// It's nonetheless ugly to spin up a blockchain here. Get rid of this somehow.
+		if config.POABlock != nil && config.POABlock.Cmp(parent.Number()) == 0 {
+			if reflect.TypeOf(engine).String() != "*clique.Clique" {
+				engine = clique.New(params.POAConfig, db)
+			}
+		}
 		blockchain, _ := NewBlockChain(db, nil, config, engine, vm.Config{})
 		defer blockchain.Stop()
 

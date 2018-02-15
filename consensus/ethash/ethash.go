@@ -32,10 +32,11 @@ import (
 	"time"
 	"unsafe"
 
-	mmap "github.com/edsrzf/mmap-go"
 	"github.com/Exgibichi/go-etf/consensus"
+	"github.com/Exgibichi/go-etf/ethdb"
 	"github.com/Exgibichi/go-etf/log"
 	"github.com/Exgibichi/go-etf/rpc"
+	mmap "github.com/edsrzf/mmap-go"
 	"github.com/hashicorp/golang-lru/simplelru"
 	metrics "github.com/rcrowley/go-metrics"
 )
@@ -47,7 +48,7 @@ var (
 	maxUint256 = new(big.Int).Exp(big.NewInt(2), big.NewInt(256), big.NewInt(0))
 
 	// sharedEthash is a full instance that can be shared between multiple users.
-	sharedEthash = New(Config{"", 3, 0, "", 1, 0, ModeNormal})
+	sharedEthash = New(Config{"", 3, 0, "", 1, 0, ModeNormal}, nil)
 
 	// algorithmRevision is the data structure version used for file naming.
 	algorithmRevision = 23
@@ -396,7 +397,8 @@ type Ethash struct {
 
 	caches   *lru // In memory caches to avoid regenerating too often
 	datasets *lru // In memory datasets to avoid regenerating too often
-
+	poa      consensus.Engine
+	db       ethdb.Database
 	// Mining related fields
 	rand     *rand.Rand    // Properly seeded random source for nonces
 	threads  int           // Number of threads to mine on if mining
@@ -412,7 +414,7 @@ type Ethash struct {
 }
 
 // New creates a full sized ethash PoW scheme.
-func New(config Config) *Ethash {
+func New(config Config, db ethdb.Database) *Ethash {
 	if config.CachesInMem <= 0 {
 		log.Warn("One ethash cache must always be in memory", "requested", config.CachesInMem)
 		config.CachesInMem = 1
@@ -429,13 +431,15 @@ func New(config Config) *Ethash {
 		datasets: newlru("dataset", config.DatasetsInMem, newDataset),
 		update:   make(chan struct{}),
 		hashrate: metrics.NewMeter(),
+		db:       db,
+		poa:      nil,
 	}
 }
 
 // NewTester creates a small sized ethash PoW scheme useful only for testing
 // purposes.
-func NewTester() *Ethash {
-	return New(Config{CachesInMem: 1, PowMode: ModeTest})
+func NewTester(db ethdb.Database) *Ethash {
+	return New(Config{CachesInMem: 1, PowMode: ModeTest}, db)
 }
 
 // NewFaker creates a ethash consensus engine with a fake PoW scheme that accepts

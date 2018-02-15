@@ -1,18 +1,18 @@
-// Copyright 2016 The go-ethereum Authors
-// This file is part of the go-ethereum library.
+// Copyright 2018 The go-etf Authors
+// This file is part of the go-etf library.
 //
-// The go-ethereum library is free software: you can redistribute it and/or modify
+// The go-etf library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 //
-// The go-ethereum library is distributed in the hope that it will be useful,
+// The go-etf library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the go-ethereum library. If not, see <http://www.gnu.org/licenses/>.
+// along with the go-etf library. If not, see <http://www.gnu.org/licenses/>.
 
 package params
 
@@ -22,23 +22,17 @@ import (
 	"github.com/Exgibichi/go-etf/common"
 )
 
-// DAOForkBlockExtra is the block header extra-data field to set for the DAO fork
-// point and a number of consecutive blocks to allow fast/light syncers to correctly
-// pick the side they want  ("dao-hard-fork").
+// POA fork params
 var (
-	POAForkBlockExtra        = common.FromHex("0x796f62610000000000000000000000000000000000000000000000000000000001a4260e6348ddd60ee1a597d1c6a102a076e9040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
-	POAForkExtraRange        = big.NewInt(10)
-	POABlock                 = MainnetChainConfig.POABlock
-	POAForkGasLimit   uint64 = 105e+6
-	POAForkDiff              = big.NewInt(2)
-	POAEngine                = &CliqueConfig{
-		Period: 5,
-		Epoch:  30000,
-	}
+	POAForkBlockExtra          = common.FromHex("0x796f62610000000000000000000000000000000000000000000000000000000001a4260e6348ddd60ee1a597d1c6a102a076e9040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
+	POAForkExtraRange          = big.NewInt(10)
+	POAConfig                  = &CliqueConfig{Period: 5, Epoch: 30000}
+	POAForkGasLimit   uint64   = 105e+6
+	POAChainId        *big.Int = big.NewInt(455446)
+	POAFoundersReward *big.Int = new(big.Int).Mul(big.NewInt(1e+18), big.NewInt(10e+6))
 )
 
-// DAODrainList is the list of accounts whose full balances will be moved into a
-// refund contract at the beginning of the dao-fork block.
+// POA Founders accounts
 func POA() []common.Address {
 	return []common.Address{
 		common.HexToAddress("0x01a4260e6348ddd60ee1a597d1c6a102a076e904"),

@@ -27,6 +27,7 @@ import (
 	"github.com/Exgibichi/go-etf/common"
 	"github.com/Exgibichi/go-etf/common/math"
 	"github.com/Exgibichi/go-etf/consensus"
+	"github.com/Exgibichi/go-etf/consensus/clique"
 	"github.com/Exgibichi/go-etf/consensus/misc"
 	"github.com/Exgibichi/go-etf/core/state"
 	"github.com/Exgibichi/go-etf/core/types"
@@ -85,6 +86,10 @@ func (ethash *Ethash) VerifyHeader(chain consensus.ChainReader, header *types.He
 	return ethash.verifyHeader(chain, header, parent, false, seal)
 }
 
+func (ethash *Ethash) VerifyHeaderPOA(chain consensus.ChainReader, header *types.Header, seal bool, parent *types.Header) error {
+	return nil
+}
+
 // VerifyHeaders is similar to VerifyHeader, but verifies a batch of headers
 // concurrently. The method returns a quit channel to abort the operations and
 // a results channel to retrieve the async verifications.
@@ -96,6 +101,28 @@ func (ethash *Ethash) VerifyHeaders(chain consensus.ChainReader, headers []*type
 			results <- nil
 		}
 		return abort, results
+	}
+	var poaHeaders = make([]*types.Header, len(headers))
+	var poaSeals = make([]bool, len(seals))
+	hasPoa := false
+	onlyPoa := true
+	j := 0
+	for i := 0; i < len(headers); i++ {
+		if chain.Config().POABlock.Cmp(headers[i].Number) <= 0 {
+			hasPoa = true
+			poaHeaders[j] = headers[i]
+			poaSeals[j] = seals[i]
+			j++
+		} else {
+			onlyPoa = false
+		}
+	}
+
+	if onlyPoa {
+		if ethash.poa == nil {
+			ethash.poa = clique.New(params.POAConfig, ethash.db)
+		}
+		return ethash.poa.VerifyHeaders(chain, headers, seals)
 	}
 
 	// Spawn as many workers as allowed threads
@@ -147,6 +174,12 @@ func (ethash *Ethash) VerifyHeaders(chain consensus.ChainReader, headers []*type
 			}
 		}
 	}()
+	if hasPoa { // TODO check pow errors
+		if ethash.poa == nil {
+			ethash.poa = clique.New(params.POAConfig, ethash.db)
+		}
+		return ethash.poa.VerifyHeaders(chain, poaHeaders, poaSeals)
+	}
 	return abort, errorsOut
 }
 
@@ -158,6 +191,7 @@ func (ethash *Ethash) verifyHeaderWorker(chain consensus.ChainReader, headers []
 		parent = headers[index-1]
 	}
 	if parent == nil {
+		fmt.Printf("ua 5\n")
 		return consensus.ErrUnknownAncestor
 	}
 	if chain.GetHeader(headers[index].Hash(), headers[index].Number.Uint64()) != nil {
@@ -222,6 +256,17 @@ func (ethash *Ethash) VerifyUncles(chain consensus.ChainReader, block *types.Blo
 // stock Ethereum ethash engine.
 // See YP section 4.3.4. "Block Header Validity"
 func (ethash *Ethash) verifyHeader(chain consensus.ChainReader, header, parent *types.Header, uncle bool, seal bool) error {
+
+	if ethash.poa == nil {
+		ethash.poa = clique.New(params.POAConfig, ethash.db)
+	}
+	if chain.Config().POABlock.Cmp(header.Number) == 0 {
+		return nil
+	}
+	if chain.Config().POABlock.Cmp(header.Number) < 0 {
+		return ethash.poa.VerifyHeaderPOA(chain, header, seal, parent)
+	}
+
 	// Ensure that the header's extra-data section is of a reasonable size
 	if uint64(len(header.Extra)) > params.MaximumExtraDataSize {
 		if chain.Config().POABlock.Cmp(header.Number) != 0 {
