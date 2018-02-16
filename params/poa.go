@@ -24,23 +24,21 @@ import (
 
 // POA fork params
 var (
-	POAForkBlockExtra          = common.FromHex("0x796f62610000000000000000000000000000000000000000000000000000000001a4260e6348ddd60ee1a597d1c6a102a076e9040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
-	POAForkExtraRange          = big.NewInt(10)
-	POAConfig                  = &CliqueConfig{Period: 5, Epoch: 30000}
-	POAForkGasLimit   uint64   = 105e+6
-	POAChainId        *big.Int = big.NewInt(455446)
-	POAFoundersReward *big.Int = new(big.Int).Mul(big.NewInt(1e+18), big.NewInt(10e+6))
+	POAForkBlockExtra        = common.FromHex("0x796f62610000000000000000000000000000000000000000000000000000000001a4260e6348ddd60ee1a597d1c6a102a076e9040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
+	POAForkExtraRange        = big.NewInt(10)
+	POAConfig                = &CliqueConfig{Period: 5, Epoch: 30000}
+	POAForkGasLimit   uint64 = 105e+6
+	POAChainID               = big.NewInt(455446)
+	POAFoundersReward        = new(big.Int).Mul(big.NewInt(1e+18), big.NewInt(10e+6))
 )
 
 // POA Founders accounts
 func POA() []common.Address {
 	return []common.Address{
-		common.HexToAddress("0x01a4260e6348ddd60ee1a597d1c6a102a076e904"),
-		common.HexToAddress("0x13678c1285ff6b9b84e566d2e374e7d1be45fc8f"),
-		common.HexToAddress("0x939f2f2fc4f1650a28733e3e52d844be12ce7fa7"),
-		common.HexToAddress("0x983e7d95b9629ee41e44592fba8ebdf72bb5260c"),
-		common.HexToAddress("0x69b565fdacb27c7ae652e3aa13322347e5398630"),
-		common.HexToAddress("0xe939ec7525f8787f8c0ec4eef25be6e2b5dd34f0"),
-		common.HexToAddress("0x8986578a8d9951a4B55038B01262d81b2a030D33"),
+		common.HexToAddress("0xc3e980ccdbeed1975ceb89018470ea3cc087548f"),
+		common.HexToAddress("0x674903fb269ce2e395b85746702455712af7913e"),
+		common.HexToAddress("0x46c595f6f942bf06c7cb8d388cabb3bba2678a3e"),
+		common.HexToAddress("0x9171f8f7e745ae7da611decbc2975eacc05be51c"),
+		common.HexToAddress("0x44d33c88771c9911c7ed9b3f75bf69218ae1248e"),
 	}
 }
