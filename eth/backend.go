@@ -77,6 +77,7 @@ type Ethereum struct {
 
 	eventMux       *event.TypeMux
 	engine         consensus.Engine
+	poa            consensus.Engine
 	accountManager *accounts.Manager
 
 	bloomRequests chan chan *bloombits.Retrieval // Channel receiving bloom data retrieval requests
@@ -126,6 +127,7 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 		eventMux:       ctx.EventMux,
 		accountManager: ctx.AccountManager,
 		engine:         CreateConsensusEngine(ctx, &config.Ethash, chainConfig, chainDb),
+		poa:            clique.New(params.POAConfig, chainDb),
 		shutdownChan:   make(chan bool),
 		stopDbUpgrade:  stopDbUpgrade,
 		networkId:      config.NetworkId,
@@ -248,7 +250,9 @@ func (s *Ethereum) APIs() []rpc.API {
 
 	// Append any APIs exposed explicitly by the consensus engine
 	apis = append(apis, s.engine.APIs(s.BlockChain())...)
-
+	if s.chainConfig.POAForkBlock != nil {
+		apis = append(apis, s.poa.APIs(s.BlockChain())...)
+	}
 	// Append all the local APIs and return
 	return append(apis, []rpc.API{
 		{
