@@ -420,6 +420,7 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		if len(headers) == 0 && p.forkDrop != nil {
 			// Possibly an empty reply to the fork header checks, sanity check TDs
 			verifyDAO := true
+			verifyPOA := true
 
 			// If we already have a DAO header, we can check the peer's TD against it. If
 			// the peer's ahead of this, it too must have a reply to the DAO check
@@ -428,9 +429,20 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 					verifyDAO = false
 				}
 			}
+			if poaHeader := pm.blockchain.GetHeaderByNumber(pm.chainconfig.POAForkBlock.Uint64()); poaHeader != nil {
+				if _, td := p.Head(); td.Cmp(pm.blockchain.GetTd(poaHeader.Hash(), poaHeader.Number.Uint64())) >= 0 {
+					verifyPOA = false
+				}
+			}
 			// If we're seemingly on the same chain, disable the drop timer
 			if verifyDAO {
 				p.Log().Debug("Seems to be on the same side of the DAO fork")
+				p.forkDrop.Stop()
+				p.forkDrop = nil
+				return nil
+			}
+			if verifyPOA {
+				p.Log().Debug("Seems to be on the same side of the POA fork")
 				p.forkDrop.Stop()
 				p.forkDrop = nil
 				return nil
@@ -451,6 +463,19 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 					return err
 				}
 				p.Log().Debug("Verified to be on the same side of the DAO fork")
+				return nil
+			}
+			if p.forkDrop != nil && pm.chainconfig.POAForkBlock.Cmp(headers[0].Number) == 0 {
+				// Disable the fork drop timer
+				p.forkDrop.Stop()
+				p.forkDrop = nil
+
+				// Validate the header and either drop the peer or continue
+				if err := misc.VerifyPOAHeaderExtraData(pm.chainconfig, headers[0]); err != nil {
+					p.Log().Debug("Verified to be on the other side of the POA fork, dropping")
+					return err
+				}
+				p.Log().Debug("Verified to be on the same side of the POA fork")
 				return nil
 			}
 			// Irrelevant of the fork checks, send the header to the fetcher just in case

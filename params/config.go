@@ -40,7 +40,7 @@ var (
 		EIP155Block:    big.NewInt(0),
 		EIP158Block:    big.NewInt(0),
 		ByzantiumBlock: big.NewInt(0),
-		POABlock:       big.NewInt(5),
+		POAForkBlock:   big.NewInt(5),
 		Ethash:         new(EthashConfig),
 	}
 
@@ -55,7 +55,7 @@ var (
 		EIP155Block:    big.NewInt(10),
 		EIP158Block:    big.NewInt(10),
 		ByzantiumBlock: big.NewInt(1700000),
-		POABlock:       big.NewInt(600),
+		POAForkBlock:   big.NewInt(600),
 		Ethash:         new(EthashConfig),
 	}
 
@@ -70,7 +70,7 @@ var (
 		EIP155Block:    big.NewInt(3),
 		EIP158Block:    big.NewInt(3),
 		ByzantiumBlock: big.NewInt(1035301),
-		POABlock:       big.NewInt(600),
+		POAForkBlock:   big.NewInt(600),
 		Clique: &CliqueConfig{
 			Period: 15,
 			Epoch:  30000,
@@ -116,7 +116,7 @@ type ChainConfig struct {
 	EIP158Block *big.Int `json:"eip158Block,omitempty"` // EIP158 HF block
 
 	ByzantiumBlock *big.Int `json:"byzantiumBlock,omitempty"` // Byzantium switch block (nil = no fork, 0 = already on byzantium)
-	POABlock       *big.Int `json:"poaBlock,omitempty"`       // Byzantium switch block (nil = no fork, 0 = already on byzantium)
+	POAForkBlock   *big.Int `json:"poaForkBlock,omitempty"`   // Byzantium switch block (nil = no fork, 0 = already on byzantium)
 
 	// Various consensus engines
 	Ethash *EthashConfig `json:"ethash,omitempty"`
@@ -162,7 +162,7 @@ func (c *ChainConfig) String() string {
 		c.EIP155Block,
 		c.EIP158Block,
 		c.ByzantiumBlock,
-		c.POABlock,
+		c.POAForkBlock,
 		engine,
 	)
 }
@@ -194,7 +194,7 @@ func (c *ChainConfig) IsByzantium(num *big.Int) bool {
 }
 
 func (c *ChainConfig) IsPOA(num *big.Int) bool {
-	return isForked(c.POABlock, num)
+	return isForked(c.POAForkBlock, num)
 }
 
 // GasTable returns the gas table corresponding to the current phase (homestead or homestead reprice).
@@ -257,8 +257,8 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, head *big.Int) *Confi
 	if isForkIncompatible(c.ByzantiumBlock, newcfg.ByzantiumBlock, head) {
 		return newCompatError("Byzantium fork block", c.ByzantiumBlock, newcfg.ByzantiumBlock)
 	}
-	if isForkIncompatible(c.POABlock, newcfg.POABlock, head) {
-		return newCompatError("poa fork block", c.POABlock, newcfg.POABlock)
+	if isForkIncompatible(c.POAForkBlock, newcfg.POAForkBlock, head) {
+		return newCompatError("poa fork block", c.POAForkBlock, newcfg.POAForkBlock)
 	}
 	return nil
 }

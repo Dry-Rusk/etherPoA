@@ -168,7 +168,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 	genblock := func(i int, parent *types.Block, statedb *state.StateDB) (*types.Block, types.Receipts) {
 		// TODO(karalabe): This is needed for clique, which depends on multiple blocks.
 		// It's nonetheless ugly to spin up a blockchain here. Get rid of this somehow.
-		if config.POABlock != nil && config.POABlock.Cmp(parent.Number()) == 0 {
+		if config.POAForkBlock != nil && config.POAForkBlock.Cmp(parent.Number()) == 0 {
 			if reflect.TypeOf(engine).String() != "*clique.Clique" {
 				engine = clique.New(params.POAConfig, db)
 			}
@@ -191,7 +191,7 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 		if config.DAOForkSupport && config.DAOForkBlock != nil && config.DAOForkBlock.Cmp(b.header.Number) == 0 {
 			misc.ApplyDAOHardFork(statedb)
 		}
-		if config.POABlock != nil && config.POABlock.Cmp(b.header.Number) == 0 {
+		if config.POAForkBlock != nil && config.POAForkBlock.Cmp(b.header.Number) == 0 {
 			b.header.Extra = common.CopyBytes(params.POAForkBlockExtra)
 			b.header.GasLimit = params.POAForkGasLimit
 			misc.ApplyPOAHardFork(statedb)

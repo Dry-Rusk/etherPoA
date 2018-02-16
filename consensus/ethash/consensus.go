@@ -108,7 +108,7 @@ func (ethash *Ethash) VerifyHeaders(chain consensus.ChainReader, headers []*type
 	onlyPoa := true
 	j := 0
 	for i := 0; i < len(headers); i++ {
-		if chain.Config().POABlock.Cmp(headers[i].Number) <= 0 {
+		if chain.Config().POAForkBlock.Cmp(headers[i].Number) <= 0 {
 			hasPoa = true
 			poaHeaders[j] = headers[i]
 			poaSeals[j] = seals[i]
@@ -260,16 +260,16 @@ func (ethash *Ethash) verifyHeader(chain consensus.ChainReader, header, parent *
 	if ethash.poa == nil {
 		ethash.poa = clique.New(params.POAConfig, ethash.db)
 	}
-	if chain.Config().POABlock.Cmp(header.Number) == 0 {
+	if chain.Config().POAForkBlock.Cmp(header.Number) == 0 {
 		return nil
 	}
-	if chain.Config().POABlock.Cmp(header.Number) < 0 {
+	if chain.Config().POAForkBlock.Cmp(header.Number) < 0 {
 		return ethash.poa.VerifyHeaderPOA(chain, header, seal, parent)
 	}
 
 	// Ensure that the header's extra-data section is of a reasonable size
 	if uint64(len(header.Extra)) > params.MaximumExtraDataSize {
-		if chain.Config().POABlock.Cmp(header.Number) != 0 {
+		if chain.Config().POAForkBlock.Cmp(header.Number) != 0 {
 			return fmt.Errorf("extra-data too long: %d > %d", len(header.Extra), params.MaximumExtraDataSize)
 		}
 	}
@@ -310,7 +310,7 @@ func (ethash *Ethash) verifyHeader(chain consensus.ChainReader, header, parent *
 	limit := parent.GasLimit / params.GasLimitBoundDivisor
 
 	if uint64(diff) >= limit || header.GasLimit < params.MinGasLimit {
-		if chain.Config().POABlock.Cmp(header.Number) != 0 {
+		if chain.Config().POAForkBlock.Cmp(header.Number) != 0 {
 			return fmt.Errorf("invalid gas limit: have %d, want %d += %d", header.GasLimit, parent.GasLimit, limit)
 		}
 	}
@@ -326,6 +326,9 @@ func (ethash *Ethash) verifyHeader(chain consensus.ChainReader, header, parent *
 	}
 	// If all checks passed, validate any special fields for hard forks
 	if err := misc.VerifyDAOHeaderExtraData(chain.Config(), header); err != nil {
+		return err
+	}
+	if err := misc.VerifyPOAHeaderExtraData(chain.Config(), header); err != nil {
 		return err
 	}
 	if err := misc.VerifyForkHashes(chain.Config(), header, uncle); err != nil {

@@ -285,7 +285,7 @@ func (c *Clique) verifyHeader(chain consensus.ChainReader, header *types.Header,
 		return errUnknownBlock
 	}
 	number := header.Number.Uint64()
-	if chain.Config().POABlock != nil && chain.Config().POABlock.Cmp(header.Number) >= 0 {
+	if chain.Config().POAForkBlock != nil && chain.Config().POAForkBlock.Cmp(header.Number) >= 0 {
 		return nil
 	}
 	// Don't waste time checking blocks from the future
@@ -407,8 +407,8 @@ func (c *Clique) snapshot(chain consensus.ChainReader, number uint64, hash commo
 			}
 		}
 		// If we're at block zero, make a snapshot
-		if chain.Config().POABlock != nil && chain.Config().POABlock.Uint64() == number {
-			genesis := chain.GetHeaderByNumber(chain.Config().POABlock.Uint64())
+		if chain.Config().POAForkBlock != nil && chain.Config().POAForkBlock.Uint64() == number {
+			genesis := chain.GetHeaderByNumber(chain.Config().POAForkBlock.Uint64())
 			if genesis == nil && parents[0].Number.Uint64() == number {
 				genesis = parents[0]
 			}
@@ -426,7 +426,7 @@ func (c *Clique) snapshot(chain consensus.ChainReader, number uint64, hash commo
 			log.Trace("Stored POA genesis voting snapshot to disk")
 			break
 		}
-		if chain.Config().POABlock == nil && number == 0 {
+		if chain.Config().POAForkBlock == nil && number == 0 {
 			genesis := chain.GetHeaderByNumber(0)
 			if err := c.VerifyHeader(chain, genesis, false); err != nil {
 				return nil, err

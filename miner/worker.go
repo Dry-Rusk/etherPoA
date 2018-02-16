@@ -424,7 +424,7 @@ func (self *worker) commitNewWork() {
 		header.Coinbase = self.coinbase
 	}
 
-	if self.config.POABlock != nil && self.config.POABlock.Cmp(header.Number) == -1 {
+	if self.config.POAForkBlock != nil && self.config.POAForkBlock.Cmp(header.Number) == -1 {
 		if reflect.TypeOf(self.engine).String() != "*clique.Clique" {
 			self.engine = clique.New(params.POAConfig, self.chainDb)
 			if clique, ok := self.engine.(*clique.Clique); ok {
@@ -456,7 +456,7 @@ func (self *worker) commitNewWork() {
 			}
 		}
 	}
-	if self.config.POABlock != nil && self.config.POABlock.Cmp(header.Number) == 0 {
+	if self.config.POAForkBlock != nil && self.config.POAForkBlock.Cmp(header.Number) == 0 {
 		header.Extra = common.CopyBytes(params.POAForkBlockExtra)
 		header.GasLimit = params.POAForkGasLimit
 	}
@@ -471,7 +471,7 @@ func (self *worker) commitNewWork() {
 	if self.config.DAOForkSupport && self.config.DAOForkBlock != nil && self.config.DAOForkBlock.Cmp(header.Number) == 0 {
 		misc.ApplyDAOHardFork(work.state)
 	}
-	if self.config.POABlock != nil && self.config.POABlock.Cmp(header.Number) == 0 {
+	if self.config.POAForkBlock != nil && self.config.POAForkBlock.Cmp(header.Number) == 0 {
 		misc.ApplyPOAHardFork(work.state)
 	}
 	pending, err := self.eth.TxPool().Pending()

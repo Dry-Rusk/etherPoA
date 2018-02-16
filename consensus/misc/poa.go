@@ -31,10 +31,10 @@ var (
 
 // check POA fork extra data
 func VerifyPOAHeaderExtraData(config *params.ChainConfig, header *types.Header) error {
-	if config.POABlock == nil {
+	if config.POAForkBlock == nil {
 		return nil
 	}
-	if config.POABlock != nil && config.POABlock.Cmp(header.Number) != 0 {
+	if config.POAForkBlock != nil && config.POAForkBlock.Cmp(header.Number) != 0 {
 		return nil
 	}
 	if !bytes.Equal(header.Extra, params.POAForkBlockExtra) {
