@@ -40,7 +40,7 @@ var (
 		EIP155Block:    big.NewInt(2675000),
 		EIP158Block:    big.NewInt(2675000),
 		ByzantiumBlock: big.NewInt(4370000),
-		POAForkBlock:   big.NewInt(5103920),
+		POAForkBlock:   big.NewInt(5105100),
 		Ethash:         new(EthashConfig),
 	}
 

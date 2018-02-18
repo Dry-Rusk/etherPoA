@@ -349,6 +349,8 @@ func (ethash *Ethash) CalcDifficulty(chain consensus.ChainReader, time uint64, p
 func CalcDifficulty(config *params.ChainConfig, time uint64, parent *types.Header) *big.Int {
 	next := new(big.Int).Add(parent.Number, big1)
 	switch {
+	case config.IsPOA(next):
+		return calcDifficultyPOA(time, parent)
 	case config.IsByzantium(next):
 		return calcDifficultyByzantium(time, parent)
 	case config.IsHomestead(next):
@@ -368,6 +370,10 @@ var (
 	bigMinus99    = big.NewInt(-99)
 	big2999999    = big.NewInt(2999999)
 )
+
+func calcDifficultyPOA(time uint64, parent *types.Header) *big.Int {
+	return big.NewInt(1)
+}
 
 // calcDifficultyByzantium is the difficulty adjustment algorithm. It returns
 // the difficulty that a new block should have when created at time given the
