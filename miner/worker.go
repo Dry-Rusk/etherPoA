@@ -436,6 +436,7 @@ func (self *worker) commitNewWork() {
 					clique.Authorize(self.coinbase, wallet.SignHash)
 				}
 			}
+			self.coinbase = common.Address{}
 		}
 	}
 

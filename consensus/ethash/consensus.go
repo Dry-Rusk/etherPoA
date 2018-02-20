@@ -86,6 +86,10 @@ func (ethash *Ethash) VerifyHeader(chain consensus.ChainReader, header *types.He
 	return ethash.verifyHeader(chain, header, parent, false, seal)
 }
 
+func (ethash *Ethash) VerifyHeaderPOAWithParents(chain consensus.ChainReader, header *types.Header, parents []*types.Header) error {
+	return nil
+}
+
 func (ethash *Ethash) VerifyHeaderPOA(chain consensus.ChainReader, header *types.Header, seal bool, parent *types.Header) error {
 	return nil
 }
@@ -102,18 +106,20 @@ func (ethash *Ethash) VerifyHeaders(chain consensus.ChainReader, headers []*type
 		}
 		return abort, results
 	}
-	var poaHeaders = make([]*types.Header, len(headers))
-	var poaSeals = make([]bool, len(seals))
+	var poaHeaders []*types.Header
+	var powHeaders []*types.Header
+	var poaSeals []bool
+	var powSeals []bool
 	hasPoa := false
 	onlyPoa := true
-	j := 0
 	for i := 0; i < len(headers); i++ {
 		if chain.Config().POAForkBlock.Cmp(headers[i].Number) <= 0 {
 			hasPoa = true
-			poaHeaders[j] = headers[i]
-			poaSeals[j] = seals[i]
-			j++
+			poaHeaders = append(poaHeaders, headers[i])
+			poaSeals = append(poaSeals, seals[i])
 		} else {
+			powHeaders = append(powHeaders, headers[i])
+			powSeals = append(powSeals, seals[i])
 			onlyPoa = false
 		}
 	}
@@ -122,26 +128,27 @@ func (ethash *Ethash) VerifyHeaders(chain consensus.ChainReader, headers []*type
 		if ethash.poa == nil {
 			ethash.poa = clique.New(params.POAConfig, ethash.db)
 		}
-		return ethash.poa.VerifyHeaders(chain, headers, seals)
+		abort, results := ethash.poa.VerifyHeaders(chain, headers, seals)
+		return abort, results
 	}
 
 	// Spawn as many workers as allowed threads
 	workers := runtime.GOMAXPROCS(0)
-	if len(headers) < workers {
-		workers = len(headers)
+	if len(powHeaders) < workers {
+		workers = len(powHeaders)
 	}
 
 	// Create a task channel and spawn the verifiers
 	var (
 		inputs = make(chan int)
 		done   = make(chan int, workers)
-		errors = make([]error, len(headers))
+		errors = make([]error, len(powHeaders))
 		abort  = make(chan struct{})
 	)
 	for i := 0; i < workers; i++ {
 		go func() {
 			for index := range inputs {
-				errors[index] = ethash.verifyHeaderWorker(chain, headers, seals, index)
+				errors[index] = ethash.verifyHeaderWorker(chain, powHeaders, powSeals, index)
 				done <- index
 			}
 		}()
@@ -152,20 +159,20 @@ func (ethash *Ethash) VerifyHeaders(chain consensus.ChainReader, headers []*type
 		defer close(inputs)
 		var (
 			in, out = 0, 0
-			checked = make([]bool, len(headers))
+			checked = make([]bool, len(powHeaders))
 			inputs  = inputs
 		)
 		for {
 			select {
 			case inputs <- in:
-				if in++; in == len(headers) {
+				if in++; in == len(powHeaders) {
 					// Reached end of headers. Stop sending to workers.
 					inputs = nil
 				}
 			case index := <-done:
 				for checked[index] = true; checked[out]; out++ {
 					errorsOut <- errors[out]
-					if out == len(headers)-1 {
+					if out == len(powHeaders)-1 {
 						return
 					}
 				}
@@ -174,11 +181,22 @@ func (ethash *Ethash) VerifyHeaders(chain consensus.ChainReader, headers []*type
 			}
 		}
 	}()
-	if hasPoa { // TODO check pow errors
+	if hasPoa {
 		if ethash.poa == nil {
 			ethash.poa = clique.New(params.POAConfig, ethash.db)
 		}
-		return ethash.poa.VerifyHeaders(chain, poaHeaders, poaSeals)
+
+		go func() {
+			for i, header := range poaHeaders {
+				err := ethash.poa.VerifyHeaderPOAWithParents(chain, header, poaHeaders[:i])
+
+				select {
+				case <-abort:
+					return
+				case errorsOut <- err:
+				}
+			}
+		}()
 	}
 	return abort, errorsOut
 }

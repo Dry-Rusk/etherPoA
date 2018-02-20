@@ -68,6 +68,8 @@ type Engine interface {
 	VerifyHeaders(chain ChainReader, headers []*types.Header, seals []bool) (chan<- struct{}, <-chan error)
 	// POA dirty hack
 	VerifyHeaderPOA(chain ChainReader, header *types.Header, seal bool, parent *types.Header) error
+	// POA second dirty hack
+	VerifyHeaderPOAWithParents(chain ChainReader, header *types.Header, parents []*types.Header) error
 	// VerifyUncles verifies that the given block's uncles conform to the consensus
 	// rules of a given engine.
 	VerifyUncles(chain ChainReader, block *types.Block) error

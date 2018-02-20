@@ -243,6 +243,10 @@ func (c *Clique) VerifyHeader(chain consensus.ChainReader, header *types.Header,
 }
 
 // VerifyHeader checks whether a header conforms to the consensus rules.
+func (c *Clique) VerifyHeaderPOAWithParents(chain consensus.ChainReader, header *types.Header, parents []*types.Header) error {
+	return c.verifyHeader(chain, header, parents)
+}
+
 func (c *Clique) VerifyHeaderPOA(chain consensus.ChainReader, header *types.Header, seal bool, parent *types.Header) error {
 	var parents []*types.Header
 	if parent != nil {
