@@ -243,7 +243,11 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		}
 	}
 	st.refundGas()
-	st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
+	coinbase := st.evm.Coinbase
+	if st.evm.ChainConfig().POAForkBlock != nil && st.evm.ChainConfig().POAForkBlock.Cmp(st.evm.BlockNumber) == -1 {
+		coinbase = common.Address{}
+	}
+	st.state.AddBalance(coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
 
 	return ret, st.gasUsed(), vmerr != nil, err
 }

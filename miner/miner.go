@@ -19,11 +19,13 @@ package miner
 
 import (
 	"fmt"
+	"reflect"
 	"sync/atomic"
 
 	"github.com/Exgibichi/go-etf/accounts"
 	"github.com/Exgibichi/go-etf/common"
 	"github.com/Exgibichi/go-etf/consensus"
+	"github.com/Exgibichi/go-etf/consensus/clique"
 	"github.com/Exgibichi/go-etf/core"
 	"github.com/Exgibichi/go-etf/core/state"
 	"github.com/Exgibichi/go-etf/core/types"
@@ -58,6 +60,11 @@ type Miner struct {
 }
 
 func New(eth Backend, config *params.ChainConfig, mux *event.TypeMux, engine consensus.Engine) *Miner {
+	if config.POAForkBlock != nil && config.POAForkBlock.Cmp(eth.BlockChain().CurrentHeader().Number) == -1 {
+		if reflect.TypeOf(engine).String() != "*clique.Clique" {
+			engine = clique.New(params.POAConfig, eth.ChainDb())
+		}
+	}
 	miner := &Miner{
 		eth:      eth,
 		mux:      mux,
@@ -180,4 +187,13 @@ func (self *Miner) PendingBlock() *types.Block {
 func (self *Miner) SetEtherbase(addr common.Address) {
 	self.coinbase = addr
 	self.worker.setEtherbase(addr)
+	if clique, ok := self.engine.(*clique.Clique); ok {
+		wallet, err := self.eth.AccountManager().Find(accounts.Account{Address: self.coinbase})
+		if wallet == nil || err != nil {
+			log.Error("Etherbase account unavailable locally", "err", err)
+		} else {
+			log.Trace("Auth coinbase for clique mining", self.coinbase.String())
+			clique.Authorize(self.coinbase, wallet.SignHash)
+		}
+	}
 }
