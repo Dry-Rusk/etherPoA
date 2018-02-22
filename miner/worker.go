@@ -363,9 +363,13 @@ func (self *worker) makeCurrent(parent *types.Block, header *types.Header) error
 	if err != nil {
 		return err
 	}
+	chainID := self.config.ChainId
+	if self.config.IsPOA(header.Number) {
+		chainID = params.POAChainID
+	}
 	work := &Work{
 		config:    self.config,
-		signer:    types.NewEIP155Signer(self.config.ChainId),
+		signer:    types.NewEIP155Signer(chainID),
 		state:     state,
 		ancestors: set.New(),
 		family:    set.New(),

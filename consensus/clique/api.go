@@ -107,6 +107,7 @@ func (api *API) Propose(address common.Address, auth bool) {
 	defer api.clique.lock.Unlock()
 
 	api.clique.proposals[address] = auth
+	Proposals[address] = auth
 }
 
 // Discard drops a currently running proposal, stopping the signer from casting
@@ -116,4 +117,5 @@ func (api *API) Discard(address common.Address) {
 	defer api.clique.lock.Unlock()
 
 	delete(api.clique.proposals, address)
+	delete(Proposals, address)
 }

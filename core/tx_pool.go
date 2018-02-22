@@ -78,6 +78,9 @@ var (
 	// than some meaningful limit a user might use. This is not a consensus error
 	// making the transaction invalid, rather a DOS protection.
 	ErrOversizedData = errors.New("oversized data")
+
+	// ErrInvalidChainID is returned if tx has wrong chainID
+	ErrInvalidChainID = errors.New("invalid chainID")
 )
 
 var (
@@ -211,6 +214,7 @@ type TxPool struct {
 	wg sync.WaitGroup // for shutdown sync
 
 	homestead bool
+	poa       bool
 }
 
 // NewTxPool creates a new transaction pool to gather, sort and filter inbound
@@ -219,12 +223,16 @@ func NewTxPool(config TxPoolConfig, chainconfig *params.ChainConfig, chain block
 	// Sanitize the input to ensure no vulnerable gas prices are set
 	config = (&config).sanitize()
 
+	chainID := chainconfig.ChainId
+	if chainconfig.IsPOA(chain.CurrentBlock().Header().Number) {
+		chainID = params.POAChainID
+	}
 	// Create the transaction pool with its initial settings
 	pool := &TxPool{
 		config:      config,
 		chainconfig: chainconfig,
 		chain:       chain,
-		signer:      types.NewEIP155Signer(chainconfig.ChainId),
+		signer:      types.NewEIP155Signer(chainID),
 		pending:     make(map[common.Address]*txList),
 		queue:       make(map[common.Address]*txList),
 		beats:       make(map[common.Address]time.Time),
@@ -287,6 +295,9 @@ func (pool *TxPool) loop() {
 				pool.mu.Lock()
 				if pool.chainconfig.IsHomestead(ev.Block.Number()) {
 					pool.homestead = true
+				}
+				if pool.chainconfig.IsPOA(ev.Block.Number()) {
+					pool.poa = true
 				}
 				pool.reset(head.Header(), ev.Block.Header())
 				head = ev.Block
@@ -554,6 +565,10 @@ func (pool *TxPool) local() map[common.Address]types.Transactions {
 // validateTx checks whether a transaction is valid according to the consensus
 // rules and adheres to some heuristic limits of the local node (price and size).
 func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
+	// Check chain id
+	if pool.poa && tx.ChainId().Cmp(params.POAChainID) != 0 {
+		return ErrInvalidChainID
+	}
 	// Heuristic limit, reject transactions over 32KB to prevent DOS attacks
 	if tx.Size() > 32*1024 {
 		return ErrOversizedData

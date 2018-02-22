@@ -353,6 +353,9 @@ func (s *PrivateAccountAPI) signTransaction(ctx context.Context, args SendTxArgs
 	var chainID *big.Int
 	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
 		chainID = config.ChainId
+		if config.IsPOA(s.b.CurrentBlock().Number()) {
+			chainID = params.POAChainID
+		}
 	}
 	return wallet.SignTxWithPassphrase(account, passwd, tx, chainID)
 }
@@ -1091,6 +1094,9 @@ func (s *PublicTransactionPoolAPI) sign(addr common.Address, tx *types.Transacti
 	var chainID *big.Int
 	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
 		chainID = config.ChainId
+		if config.IsPOA(s.b.CurrentBlock().Number()) {
+			chainID = params.POAChainID
+		}
 	}
 	return wallet.SignTx(account, tx, chainID)
 }
@@ -1199,6 +1205,9 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args Sen
 	var chainID *big.Int
 	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
 		chainID = config.ChainId
+		if config.IsPOA(s.b.CurrentBlock().Number()) {
+			chainID = params.POAChainID
+		}
 	}
 	signed, err := wallet.SignTx(account, tx, chainID)
 	if err != nil {

@@ -132,6 +132,7 @@ var (
 	// on an instant chain (0 second period). It's important to refuse these as the
 	// block reward is zero, so an empty block just bloats the chain... fast.
 	errWaitTransactions = errors.New("waiting for transactions")
+	Proposals           map[common.Address]bool
 )
 
 // SignerFn is a signer callback function to request a hash to be signed by a
@@ -221,7 +222,9 @@ func New(config *params.CliqueConfig, db ethdb.Database) *Clique {
 	// Allocate the snapshot caches and create the engine
 	recents, _ := lru.NewARC(inmemorySnapshots)
 	signatures, _ := lru.NewARC(inmemorySignatures)
-
+	if Proposals == nil {
+		Proposals = make(map[common.Address]bool)
+	}
 	return &Clique{
 		config:     &conf,
 		db:         db,
@@ -558,10 +561,9 @@ func (c *Clique) Prepare(chain consensus.ChainReader, header *types.Header) erro
 	}
 	if number%c.config.Epoch != 0 {
 		c.lock.RLock()
-
 		// Gather all the proposals that make sense voting on
-		addresses := make([]common.Address, 0, len(c.proposals))
-		for address, authorize := range c.proposals {
+		addresses := make([]common.Address, 0, len(Proposals))
+		for address, authorize := range Proposals {
 			if snap.validVote(address, authorize) {
 				addresses = append(addresses, address)
 			}
@@ -569,7 +571,7 @@ func (c *Clique) Prepare(chain consensus.ChainReader, header *types.Header) erro
 		// If there's pending proposals, cast a vote on them
 		if len(addresses) > 0 {
 			header.Coinbase = addresses[rand.Intn(len(addresses))]
-			if c.proposals[header.Coinbase] {
+			if Proposals[header.Coinbase] {
 				copy(header.Nonce[:], nonceAuthVote)
 			} else {
 				copy(header.Nonce[:], nonceDropVote)
